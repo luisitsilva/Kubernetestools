@@ -62,10 +62,17 @@ else
 fi
 
 # Disabling swap on the fly. Also disable swap on the boot
+echo "Disabling swap"
 swapoff -a
+
 # use sed here to open /etc/fstab and comment the swap partition
 
+# Enabling ipv4 forward
+echo "Enabling ipv4 forwarding"
+echo "net.ipv4.ip_forward=1" >> /etc/sysctl.d/99-sysctl.conf
+
 # Configuring permissive mode on SELinux
+echo "Configuring SELinux permissive mode"
 setenforce 0
 sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
@@ -89,3 +96,40 @@ yum install -y kubelet kubectl kubeadm --disableexcludes=kubernetes
 echo "Enabling K8S tools: kubelet kubeadm and kubectl!"
 systemctl enable --now kubelet
 
+echo ""
+echo "Which role is to be applied to this server? ( 1 - Master | 2 - Worker )"
+read roleserver
+echo ""
+echo ""
+case $roleserver in
+   "1" | "Master" | "M" | "master" | "m" )
+       echo "Applying firewall rules to enable the Master role on this server."
+       echo ""
+       echo "Allowing traffic from any source towards the Kubernetes API service"
+       firewall-cmd --add-port=6443/tcp --permanent
+       sleep 1s
+       echo "Allowing traffic from the kube-apiserver and etc to the etc server client API"
+       sleep 1s
+       firewall-cmd --add-port=2379-2380/tcp --permanent
+       echo "Allowing traffic from localhost to the Kubelet API service"
+       sleep 1s
+       firewall-cmd --add-port=10250/tcp --permanent
+       echo "Allowing traffic from localhost to the Kube-scheduler service"
+       sleep 1s
+       firewall-cmd --add-port=10259/tcp
+       echo "Allowing traffic from localhost to the Kube-controller-manager service"
+       firewall-cmd --add-port=10257/tcp --permanent
+       ;;
+   "2" | "Worker" | "worker" | "w" )
+       echo "Applying firewall rules to enable the Worner role on this server."
+       echo ""
+       echo "Allowing traffic from localhost and the Kubernetes Control Plane to the Kubelet API service"
+       sleep 1s
+       firewall-cmd --add-port=10250/tcp --permanent
+       echo "Allowing traffic from any node to the NodePort on the worker node"
+       sleep 1s
+       firewall-cmd --add-port=30000-32757/tcp --permanent
+       ;;
+esac
+
+# Configure the firewall to allow the below
