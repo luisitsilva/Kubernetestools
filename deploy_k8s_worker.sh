@@ -17,7 +17,7 @@ else
         echo "Shall we proceed with installed the latest version of containerd?"
         read contdinstall
         case $contdinstall in
-          "Yes" | "YEs" | "YES" | "yES" | "yEs" | "yes" )
+          "Yes" | "YEs" | "YES" | "yES" | "yEs" | "yes" | "Y" | "y")
              echo "Starting containerd deployment process"
              echo "Updating required OS utils"
              yum install -y yum-utils
